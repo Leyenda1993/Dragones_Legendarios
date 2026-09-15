@@ -1,10 +1,25 @@
 local s,id=GetID()
+function s.tuner_filter(c)
+	return c:IsType(TYPE_TUNER) and c:IsAbleToGrave()
+end
+function s.nontuner_filter(c)
+	return c:IsSetCard(0x999) and c:IsType(TYPE_MONSTER) and not c:IsType(TYPE_TUNER) and c:IsAbleToGrave()
+end
 function s.initial_effect(c)
-	--Invocación por Synchro
-	Synchro.AddProcedure(c,nil,1,1,Synchro.NonTunerEx(Card.IsSetCard,0x999),1,99)
 	c:EnableReviveLimit()
+	-- Invocación por Synchro MANUAL
+	local e0=Effect.CreateEffect(c)
+	e0:SetType(EFFECT_TYPE_FIELD)
+	e0:SetCode(EFFECT_SPSUMMON_PROC)
+	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_CANNOT_DISABLE)
+	e0:SetRange(LOCATION_EXTRA)
+	e0:SetCondition(s.syncon)
+	e0:SetTarget(s.syntg)
+	e0:SetOperation(s.synop)
+	e0:SetValue(SUMMON_TYPE_SYNCHRO)
+	c:RegisterEffect(e0)
 
-	--Negar activación y destruir
+	-- Negar activación y destruir
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_NEGATE+CATEGORY_DESTROY)
@@ -18,7 +33,7 @@ function s.initial_effect(c)
 	e1:SetOperation(s.negop)
 	c:RegisterEffect(e1)
 
-	--Invocar al ser destruido
+	-- Invocar al ser destruido
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetCategory(CATEGORY_SPECIAL_SUMMON)
@@ -28,6 +43,31 @@ function s.initial_effect(c)
 	e2:SetTarget(s.sptg)
 	e2:SetOperation(s.spop)
 	c:RegisterEffect(e2)
+end
+function s.syncon(e,c)
+	if c==nil then return true end
+	local tp=c:GetControler()
+	return Duel.GetLocationCount(tp,LOCATION_MZONE)>-1
+		and Duel.IsExistingMatchingCard(s.tuner_filter,tp,LOCATION_MZONE,0,1,nil)
+		and Duel.IsExistingMatchingCard(s.nontuner_filter,tp,LOCATION_MZONE,0,1,nil)
+end
+function s.syntg(e,tp,eg,ep,ev,re,r,rp,chk,c)
+	if chk==0 then return true end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+	local g1=Duel.SelectMatchingCard(tp,s.tuner_filter,tp,LOCATION_MZONE,0,1,1,nil)
+	if g1:GetCount()==0 then return false end
+	local g2=Duel.SelectMatchingCard(tp,s.nontuner_filter,tp,LOCATION_MZONE,0,1,99,nil)
+	if g2:GetCount()==0 then return false end
+	g1:Merge(g2)
+	g1:KeepAlive()
+	e:SetLabelObject(g1)
+	return true
+end
+function s.synop(e,tp,eg,ep,ev,re,r,rp,c)
+	local g=e:GetLabelObject()
+	if not g then return end
+	Duel.SendtoGrave(g,REASON_MATERIAL+REASON_SYNCHRO)
+	g:DeleteGroup()
 end
 function s.negcon(e,tp,eg,ep,ev,re,r,rp) return rp==1-tp and Duel.IsChainNegatable(ev) end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)

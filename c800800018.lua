@@ -1,11 +1,22 @@
 local s,id=GetID()
-function s.matfilter(c) return c:IsSetCard(0x999) end
+function s.matfilter(c)
+	return c:IsSetCard(0x999) and c:IsType(TYPE_MONSTER) and c:IsAbleToGrave()
+end
 function s.initial_effect(c)
-	--Invocación por Enlace
-	aux.AddLinkProcedure(c,s.matfilter,2,3)
 	c:EnableReviveLimit()
+	-- Invocación por Enlace MANUAL
+	local e0=Effect.CreateEffect(c)
+	e0:SetType(EFFECT_TYPE_FIELD)
+	e0:SetCode(EFFECT_SPSUMMON_PROC)
+	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_CANNOT_DISABLE)
+	e0:SetRange(LOCATION_EXTRA)
+	e0:SetCondition(s.lkcon)
+	e0:SetTarget(s.lktg)
+	e0:SetOperation(s.lkop)
+	e0:SetValue(SUMMON_TYPE_LINK)
+	c:RegisterEffect(e0)
 
-	--Invocar Dragón Legendario al ser invocado
+	-- Invocar Dragón Legendario al ser invocado
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_SPECIAL_SUMMON)
@@ -18,7 +29,7 @@ function s.initial_effect(c)
 	e1:SetOperation(s.spop)
 	c:RegisterEffect(e1)
 
-	--Negar carta boca arriba
+	-- Negar carta boca arriba
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetCategory(CATEGORY_DISABLE)
@@ -30,8 +41,35 @@ function s.initial_effect(c)
 	e2:SetOperation(s.negop)
 	c:RegisterEffect(e2)
 end
-function s.spcon(e,tp,eg,ep,ev,re,r,rp) return e:GetHandler():IsSummonType(SUMMON_TYPE_LINK) end
-function s.spfilter(c,e,tp) return c:IsSetCard(0x999) and c:GetLevel()<=4 and c:IsCanBeSpecialSummoned(e,0,tp,false,false) end
+function s.lkcon(e,c)
+	if c==nil then return true end
+	local tp=c:GetControler()
+	return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
+		and Duel.IsExistingMatchingCard(s.matfilter,tp,LOCATION_MZONE,0,2,nil)
+end
+function s.lktg(e,tp,eg,ep,ev,re,r,rp,chk,c)
+	if chk==0 then return true end
+	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
+	local g=Duel.SelectMatchingCard(tp,s.matfilter,tp,LOCATION_MZONE,0,2,3,nil)
+	if g:GetCount()>0 then
+		g:KeepAlive()
+		e:SetLabelObject(g)
+		return true
+	end
+	return false
+end
+function s.lkop(e,tp,eg,ep,ev,re,r,rp,c)
+	local g=e:GetLabelObject()
+	if not g then return end
+	Duel.SendtoGrave(g,REASON_MATERIAL+REASON_LINK)
+	g:DeleteGroup()
+end
+function s.spcon(e,tp,eg,ep,ev,re,r,rp)
+	return e:GetHandler():IsSummonType(SUMMON_TYPE_LINK)
+end
+function s.spfilter(c,e,tp)
+	return c:IsSetCard(0x999) and c:GetLevel()<=4 and c:IsCanBeSpecialSummoned(e,0,tp,false,false)
+end
 function s.sptg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.GetLocationCount(tp,LOCATION_MZONE)>0
 		and Duel.IsExistingMatchingCard(s.spfilter,tp,LOCATION_HAND+LOCATION_GRAVE,0,1,nil,e,tp) end
@@ -41,7 +79,9 @@ function s.spop(e,tp,eg,ep,ev,re,r,rp)
 	if Duel.GetLocationCount(tp,LOCATION_MZONE)<=0 then return end
 	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_SPSUMMON)
 	local g=Duel.SelectMatchingCard(tp,aux.NecroValleyFilter(s.spfilter),tp,LOCATION_HAND+LOCATION_GRAVE,0,1,1,nil,e,tp)
-	if #g>0 then Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP) end
+	if #g>0 then
+		Duel.SpecialSummon(g,0,tp,tp,false,false,POS_FACEUP)
+	end
 end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(Card.IsFaceup,tp,0,LOCATION_ONFIELD,1,nil) end
