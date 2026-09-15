@@ -1,0 +1,10 @@
+{
+  "repos": [
+    {
+      "url": "https://github.com/Leyenda1993/TuRepositorio",
+      "repo_name": "Dragones Legendarios",
+      "should_update": true,
+      "should_read": true
+    }
+  ]
+}
