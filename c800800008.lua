@@ -1,10 +1,10 @@
 local s,id=GetID()
 function s.initial_effect(c)
-	--Invocación Xyz
-	Xyz.AddProcedure(c,nil,4,2,aux.FilterBoolFunction(Card.IsSetCard,0x999),2,2)
+	--Invocación por Xyz
+	Xyz.AddProcedure(c,nil,4,2,aux.FilterBoolFunctionEx(Card.IsSetCard,0x999),2,2)
 	c:EnableReviveLimit()
 
-	--Efecto Rápido: Negar carta boca arriba
+	--Desacoplar y negar carta boca arriba
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_DISABLE)
@@ -17,7 +17,7 @@ function s.initial_effect(c)
 	e1:SetOperation(s.negop)
 	c:RegisterEffect(e1)
 
-	--Efecto Rápido: Negar efecto de monstruo (si tiene a Aurum)
+	--Negar efecto si tiene a Aurum como material
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetCategory(CATEGORY_NEGATE)
@@ -36,10 +36,10 @@ function s.detcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	e:GetHandler():RemoveOverlayCard(tp,1,1,REASON_COST)
 end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)
-	if chk==0 then return Duel.IsExistingMatchingCard(aux.TRUE,tp,0,LOCATION_ONFIELD,1,nil) end
+	if chk==0 then return Duel.IsExistingMatchingCard(Card.IsFaceup,tp,0,LOCATION_ONFIELD,1,nil) end
 end
 function s.negop(e,tp,eg,ep,ev,re,r,rp)
-	local g=Duel.GetMatchingGroup(aux.TRUE,tp,0,LOCATION_ONFIELD,nil)
+	local g=Duel.GetMatchingGroup(Card.IsFaceup,tp,0,LOCATION_ONFIELD,nil)
 	if #g>0 then
 		Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FACEUP)
 		local tc=g:Select(tp,1,1,nil):GetFirst()
@@ -59,8 +59,7 @@ function s.negop(e,tp,eg,ep,ev,re,r,rp)
 end
 function s.negcon2(e,tp,eg,ep,ev,re,r,rp)
 	if rp==1-tp and re:IsActiveType(TYPE_MONSTER) and Duel.IsChainNegatable(ev) then
-		local c=e:GetHandler()
-		return c:GetOverlayGroup():IsExists(Card.IsCode,1,nil,800800001)
+		return e:GetHandler():GetOverlayGroup():IsExists(Card.IsCode,1,nil,800800001)
 	end
 	return false
 end
