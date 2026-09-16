@@ -1,11 +1,9 @@
 local s,id=GetID()
-function s.matfilter(c) return c:IsSetCard(0x999) end
 function s.initial_effect(c)
-	--Invocación por Enlace
-	aux.AddLinkProcedure(c,s.matfilter,2,2)
+	-- Invocación por Enlace (formato oficial)
+	Link.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,0x999),2,2)
 	c:EnableReviveLimit()
 
-	--Buscar Mágica/Trampa al ser invocado
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_TOHAND+CATEGORY_SEARCH)
@@ -18,7 +16,6 @@ function s.initial_effect(c)
 	e1:SetOperation(s.thop)
 	c:RegisterEffect(e1)
 
-	--Protección
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetType(EFFECT_TYPE_QUICK_O)
@@ -29,7 +26,9 @@ function s.initial_effect(c)
 	e2:SetOperation(s.protop)
 	c:RegisterEffect(e2)
 end
-function s.thcon(e,tp,eg,ep,ev,re,r,rp) return e:GetHandler():IsSummonType(SUMMON_TYPE_LINK) end
+function s.thcon(e,tp,eg,ep,ev,re,r,rp)
+	return e:GetHandler():IsSummonType(SUMMON_TYPE_LINK)
+end
 function s.thfilter(c) return c:IsSetCard(0x999) and c:IsType(TYPE_SPELL+TYPE_TRAP) and c:IsAbleToHand() end
 function s.thtg(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return Duel.IsExistingMatchingCard(s.thfilter,tp,LOCATION_DECK,0,1,nil) end

@@ -1,22 +1,12 @@
 local s,id=GetID()
 function s.matfilter(c)
-	return c:IsSetCard(0x999) and c:IsType(TYPE_MONSTER) and c:IsAbleToGrave()
+	return c:IsSetCard(0x999) and c:IsType(TYPE_MONSTER)
 end
 function s.initial_effect(c)
+	-- Invocación por Fusión (formato oficial)
 	c:EnableReviveLimit()
-	-- Invocación por Fusión MANUAL (sin usar funciones de aux.lua)
-	local e0=Effect.CreateEffect(c)
-	e0:SetType(EFFECT_TYPE_FIELD)
-	e0:SetCode(EFFECT_SPSUMMON_PROC)
-	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_CANNOT_DISABLE)
-	e0:SetRange(LOCATION_EXTRA)
-	e0:SetCondition(s.sprcon)
-	e0:SetTarget(s.sprtg)
-	e0:SetOperation(s.sprop)
-	e0:SetValue(SUMMON_TYPE_FUSION)
-	c:RegisterEffect(e0)
+	Fusion.AddProcMixN(c,true,true,aux.FilterBoolFunctionEx(Card.IsSetCard,0x999),2)
 
-	-- Negar activación y desterrar
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_NEGATE+CATEGORY_REMOVE)
@@ -30,7 +20,6 @@ function s.initial_effect(c)
 	e1:SetOperation(s.negop)
 	c:RegisterEffect(e1)
 
-	-- Invocar al ser destruido
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetCategory(CATEGORY_SPECIAL_SUMMON)
@@ -40,29 +29,6 @@ function s.initial_effect(c)
 	e2:SetTarget(s.sptg)
 	e2:SetOperation(s.spop)
 	c:RegisterEffect(e2)
-end
-function s.sprcon(e,c)
-	if c==nil then return true end
-	local tp=c:GetControler()
-	return Duel.GetLocationCount(tp,LOCATION_MZONE)>-1
-		and Duel.IsExistingMatchingCard(s.matfilter,tp,LOCATION_MZONE+LOCATION_HAND,0,2,nil)
-end
-function s.sprtg(e,tp,eg,ep,ev,re,r,rp,chk,c)
-	if chk==0 then return true end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_FMATERIAL)
-	local g=Duel.SelectMatchingCard(tp,s.matfilter,tp,LOCATION_MZONE+LOCATION_HAND,0,2,2,nil)
-	if g:GetCount()>0 then
-		g:KeepAlive()
-		e:SetLabelObject(g)
-		return true
-	end
-	return false
-end
-function s.sprop(e,tp,eg,ep,ev,re,r,rp,c)
-	local g=e:GetLabelObject()
-	if not g then return end
-	Duel.SendtoGrave(g,REASON_MATERIAL+REASON_FUSION)
-	g:DeleteGroup()
 end
 function s.negcon(e,tp,eg,ep,ev,re,r,rp) return rp==1-tp and Duel.IsChainNegatable(ev) end
 function s.negtg(e,tp,eg,ep,ev,re,r,rp,chk)

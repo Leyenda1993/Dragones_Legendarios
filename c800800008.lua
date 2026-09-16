@@ -3,20 +3,10 @@ function s.matfilter(c)
 	return c:IsSetCard(0x999) and c:GetLevel()==4 and c:IsType(TYPE_MONSTER)
 end
 function s.initial_effect(c)
+	-- Invocación por Xyz (formato oficial)
+	Xyz.AddProcedure(c,aux.FilterBoolFunctionEx(Card.IsSetCard,0x999),4,2)
 	c:EnableReviveLimit()
-	-- Invocación por Xyz MANUAL
-	local e0=Effect.CreateEffect(c)
-	e0:SetType(EFFECT_TYPE_FIELD)
-	e0:SetCode(EFFECT_SPSUMMON_PROC)
-	e0:SetProperty(EFFECT_FLAG_UNCOPYABLE+EFFECT_FLAG_CANNOT_DISABLE)
-	e0:SetRange(LOCATION_EXTRA)
-	e0:SetCondition(s.xyzcon)
-	e0:SetTarget(s.xyztg)
-	e0:SetOperation(s.xyzop)
-	e0:SetValue(SUMMON_TYPE_XYZ)
-	c:RegisterEffect(e0)
 
-	-- Desacoplar y negar carta boca arriba
 	local e1=Effect.CreateEffect(c)
 	e1:SetDescription(aux.Stringid(id,0))
 	e1:SetCategory(CATEGORY_DISABLE)
@@ -29,7 +19,6 @@ function s.initial_effect(c)
 	e1:SetOperation(s.negop)
 	c:RegisterEffect(e1)
 
-	-- Negar efecto si tiene a Aurum como material
 	local e2=Effect.CreateEffect(c)
 	e2:SetDescription(aux.Stringid(id,1))
 	e2:SetCategory(CATEGORY_NEGATE)
@@ -42,29 +31,6 @@ function s.initial_effect(c)
 	e2:SetCost(s.detcost)
 	e2:SetOperation(s.negop2)
 	c:RegisterEffect(e2)
-end
-function s.xyzcon(e,c)
-	if c==nil then return true end
-	local tp=c:GetControler()
-	return Duel.GetLocationCount(tp,LOCATION_MZONE)>-1
-		and Duel.IsExistingMatchingCard(s.matfilter,tp,LOCATION_MZONE,0,2,nil)
-end
-function s.xyztg(e,tp,eg,ep,ev,re,r,rp,chk,c)
-	if chk==0 then return true end
-	Duel.Hint(HINT_SELECTMSG,tp,HINTMSG_TOGRAVE)
-	local g=Duel.SelectMatchingCard(tp,s.matfilter,tp,LOCATION_MZONE,0,2,2,nil)
-	if g:GetCount()>0 then
-		g:KeepAlive()
-		e:SetLabelObject(g)
-		return true
-	end
-	return false
-end
-function s.xyzop(e,tp,eg,ep,ev,re,r,rp,c)
-	local g=e:GetLabelObject()
-	if not g then return end
-	Duel.SendtoGrave(g,REASON_MATERIAL+REASON_XYZ)
-	g:DeleteGroup()
 end
 function s.detcost(e,tp,eg,ep,ev,re,r,rp,chk)
 	if chk==0 then return e:GetHandler():CheckRemoveOverlayCard(tp,1,REASON_COST) end
